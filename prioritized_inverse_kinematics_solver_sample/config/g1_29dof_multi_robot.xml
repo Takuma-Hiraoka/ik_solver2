@@ -1,0 +1,18 @@
+<mujoco model="g1_29dof_multi_robot">
+  <asset>
+    <model name="g1" file="../unitree_ros/robots/g1_description/g1_29dof.xml"/>
+  </asset>
+
+  <statistic center="0 0 0.8" extent="1.5"/>
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.9 0.9 0.9"/>
+    <global azimuth="-140" elevation="-20"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" rgba="0.2 0.3 0.4 1"/>
+    <attach model="g1" body="pelvis" prefix="robot0_"/>
+    <attach model="g1" body="pelvis" prefix="robot1_"/>
+  </worldbody>
+</mujoco>

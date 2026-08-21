@@ -19,9 +19,10 @@ foreach(dep ${dependencies})
 endforeach()
 
 add_executable(com src/com.cpp)
+add_executable(multi_robot src/multi_robot.cpp)
 add_executable(position src/position.cpp)
 
-foreach(target com position)
+foreach(target com multi_robot position)
   ament_target_dependencies(${target}
     ${dependencies}
     )
@@ -33,11 +34,16 @@ endforeach()
 
 install(TARGETS
   com
+  multi_robot
   position
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(DIRECTORY unitree_ros
+  DESTINATION share/${PROJECT_NAME}
+  )
+
+install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}
   )
 
