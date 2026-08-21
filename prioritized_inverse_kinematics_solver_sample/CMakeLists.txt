@@ -18,17 +18,21 @@ foreach(dep ${dependencies})
   find_package(${dep} REQUIRED)
 endforeach()
 
+add_executable(com src/com.cpp)
 add_executable(position src/position.cpp)
 
-ament_target_dependencies(position
-  ${dependencies}
-  )
+foreach(target com position)
+  ament_target_dependencies(${target}
+    ${dependencies}
+    )
 
-target_link_libraries(position
-  pinocchio::pinocchio
-  )
+  target_link_libraries(${target}
+    pinocchio::pinocchio
+    )
+endforeach()
 
 install(TARGETS
+  com
   position
   DESTINATION lib/${PROJECT_NAME}
 )

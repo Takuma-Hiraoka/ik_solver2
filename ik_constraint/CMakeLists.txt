@@ -17,6 +17,7 @@ foreach(dep ${dependencies})
 endforeach()
 
 add_library(${PROJECT_NAME}
+  src/COMConstraint.cpp
   src/IKConstraint.cpp
   src/PositionConstraint.cpp
   )
