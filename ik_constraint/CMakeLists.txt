@@ -17,10 +17,12 @@ foreach(dep ${dependencies})
 endforeach()
 
 add_library(${PROJECT_NAME}
+  src/ANDConstraint.cpp
   src/COMConstraint.cpp
   src/IKConstraint.cpp
   src/JointAngleConstraint.cpp
   src/JointLimitConstraint.cpp
+  src/ORConstraint.cpp
   src/PositionConstraint.cpp
   )
 
