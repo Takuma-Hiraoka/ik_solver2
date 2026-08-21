@@ -18,6 +18,7 @@ endforeach()
 
 add_library(${PROJECT_NAME}
   src/ANDConstraint.cpp
+  src/CollisionConstraint.cpp
   src/COMConstraint.cpp
   src/IKConstraint.cpp
   src/JointAngleConstraint.cpp
