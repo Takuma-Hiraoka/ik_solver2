@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>prioritized_inverse_kinematics_solver</name>
+  <version>0.0.0</version>
+  <description>Prioritized inverse-kinematics solver using Pinocchio and prioritized QP.</description>
+
+  <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>eigen</depend>
+  <depend>pinocchio</depend>
+  <depend>mujoco_viewer</depend>
+  <depend>ik_constraint</depend>
+  <depend>prioritized_qp_base</depend>
+  <depend>prioritized_qp_osqp</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
