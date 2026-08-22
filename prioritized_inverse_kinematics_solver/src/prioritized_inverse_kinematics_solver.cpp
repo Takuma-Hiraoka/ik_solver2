@@ -349,6 +349,8 @@ namespace prioritized_inverse_kinematics_solver {
     if(!checkRejectionsSatisfied(rejections)) return false;
 
     for(size_t loop=0; loop<param.maxIteration; loop++) {
+      const std::chrono::steady_clock::time_point loopStartTime =
+        std::chrono::steady_clock::now();
       const std::vector<Eigen::VectorXd> previousConfigurations = configurations;
       const bool converged = solveIKOnce(
         models, configurations, ikcList, prevTasks, param, taskGeneratorFunc);
@@ -379,6 +381,15 @@ namespace prioritized_inverse_kinematics_solver {
       } else if(loop >= param.minIteration && checkConstraintsSatisfied(ikcList)) {
         terminate = true;
         satisfied = true;
+      }
+
+      if(param.debugLevel > 0) {
+        const std::chrono::steady_clock::time_point loopEndTime =
+          std::chrono::steady_clock::now();
+        const double time =
+          std::chrono::duration<double>(loopEndTime - loopStartTime).count();
+        std::cerr << "[PrioritizedIK] solveIKLoop loop: " << loop
+                  << " time: " << time << "[s]." << std::endl;
       }
 
       if(terminate) {

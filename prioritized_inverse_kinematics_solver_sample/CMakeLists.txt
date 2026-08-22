@@ -7,6 +7,7 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(ament_cmake REQUIRED)
 
 set(dependencies
+  ik_constraint_coal
   mujoco_viewer
   pinocchio
   ik_constraint
@@ -19,10 +20,11 @@ foreach(dep ${dependencies})
 endforeach()
 
 add_executable(com src/com.cpp)
+add_executable(collision src/collision.cpp)
 add_executable(multi_robot src/multi_robot.cpp)
 add_executable(position src/position.cpp)
 
-foreach(target com multi_robot position)
+foreach(target collision com multi_robot position)
   ament_target_dependencies(${target}
     ${dependencies}
     )
@@ -33,6 +35,7 @@ foreach(target com multi_robot position)
 endforeach()
 
 install(TARGETS
+  collision
   com
   multi_robot
   position
