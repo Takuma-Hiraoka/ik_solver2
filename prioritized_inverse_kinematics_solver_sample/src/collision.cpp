@@ -1,6 +1,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <ik_constraint/PositionConstraint.h>
 #include <ik_constraint_coal/CoalCollisionConstraint.h>
+#include <ik_constraint_vclip/VclipCollisionConstraint.h>
 #include <mujoco_viewer/mujoco_viewer.h>
 #include <prioritized_inverse_kinematics_solver/prioritized_inverse_kinematics_solver.h>
 
@@ -32,23 +33,36 @@ static std::shared_ptr<ik_constraint::PositionConstraint> makeFootConstraint(
   return constraint;
 }
 
-static std::shared_ptr<ik_constraint_coal::CoalCollisionConstraint>
+static std::shared_ptr<ik_constraint::CollisionConstraint>
 makeCollisionConstraint(
   const std::shared_ptr<pinocchio::Model>& model,
   const std::shared_ptr<pinocchio::GeometryModel>& geometryModel,
   const pinocchio::JointIndex& AJointId,
-  const pinocchio::JointIndex& BJointId)
+  const pinocchio::JointIndex& BJointId,
+  const std::string& collisionLibrary)
 {
-  std::shared_ptr<ik_constraint_coal::CoalCollisionConstraint> constraint =
-    std::make_shared<ik_constraint_coal::CoalCollisionConstraint>(
+  std::shared_ptr<ik_constraint::CollisionConstraint> constraint;
+  if(collisionLibrary == "coal") {
+    constraint = std::make_shared<ik_constraint_coal::CoalCollisionConstraint>(
       model, geometryModel, AJointId, model, geometryModel, BJointId);
+  } else {
+    constraint = std::make_shared<ik_constraint_vclip::VclipCollisionConstraint>(
+      model, geometryModel, AJointId, model, geometryModel, BJointId);
+  }
   constraint->setIgnoreDistance(0.30);
   constraint->setPrecision(1e-3);
   return constraint;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+  const std::string collisionLibrary = argc >= 2 ? argv[1] : "vclip";
+  if(collisionLibrary != "coal" && collisionLibrary != "vclip") {
+    std::cerr << "Usage: collision [coal|vclip]" << std::endl;
+    return 1;
+  }
+  std::cout << "Collision library: " << collisionLibrary << std::endl;
+
   const std::string packageShare =
     ament_index_cpp::get_package_share_directory("prioritized_inverse_kinematics_solver_sample");
   const std::string robotDirectory = packageShare + "/unitree_ros/robots/g1_description";
@@ -113,13 +127,17 @@ int main()
     std::vector<std::string>{"left_shoulder_pitch_joint", "left_shoulder_roll_joint", "left_shoulder_yaw_joint", "left_elbow_joint", "left_wrist_pitch_joint", "left_wrist_roll_joint", "left_wrist_yaw_joint"},
     std::vector<std::string>{"right_shoulder_pitch_joint", "right_shoulder_roll_joint", "right_shoulder_yaw_joint", "right_elbow_joint", "right_wrist_pitch_joint", "right_wrist_roll_joint", "right_wrist_yaw_joint"}
   };
-  std::vector<std::shared_ptr<ik_constraint_coal::CoalCollisionConstraint> >
+  std::vector<std::shared_ptr<ik_constraint::CollisionConstraint> >
     collisionConstraints;
   for(size_t i=0; i<jointGroup.size(); i++) {
     for(size_t j=i+1; j<jointGroup.size(); j++) {
       for(size_t k=0; k<jointGroup[i].size(); k++) {
 	for(size_t l=0; l<jointGroup[j].size(); l++) {
-	  collisionConstraints.push_back(makeCollisionConstraint(model, geometryModel, model->getJointId(jointGroup[i][k]), model->getJointId(jointGroup[j][l])));
+	  collisionConstraints.push_back(makeCollisionConstraint(
+	    model, geometryModel,
+	    model->getJointId(jointGroup[i][k]),
+	    model->getJointId(jointGroup[j][l]),
+	    collisionLibrary));
 	}
       }
     }
@@ -147,7 +165,7 @@ int main()
   prioritized_inverse_kinematics_solver::IKParam parameter;
   parameter.maxIteration = 100;
   parameter.convergeThre = 1e-5;
-  parameter.debugLevel = 1;
+  parameter.debugLevel = 3;
   parameter.viewer = viewer;
   parameter.viewMilliseconds = -1;
   parameter.we = 1e2;
