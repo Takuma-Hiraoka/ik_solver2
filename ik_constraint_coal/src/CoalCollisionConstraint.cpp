@@ -4,6 +4,15 @@
 #include <stdexcept>
 
 namespace ik_constraint_coal{
+  std::shared_ptr<ik_constraint::IKConstraint> CoalCollisionConstraint::clone() const {
+    std::shared_ptr<CoalCollisionConstraint> result =
+      std::make_shared<CoalCollisionConstraint>(*this);
+    result->AData_ = nullptr;
+    result->BData_ = nullptr;
+    result->invalidateDistanceQueries();
+    return result;
+  }
+
   CoalCollisionConstraint::CoalCollisionConstraint(
     const std::shared_ptr<const pinocchio::Model>& AModel,
     const std::shared_ptr<const pinocchio::GeometryModel>& AGeometryModel,

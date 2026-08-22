@@ -11,6 +11,9 @@ namespace ik_constraint{
   {
   public:
     explicit JointLimitConstraint(const std::shared_ptr<const pinocchio::Model>& model);
+    std::shared_ptr<IKConstraint> clone() const override {
+      return std::make_shared<JointLimitConstraint>(*this);
+    }
 
     const std::shared_ptr<const pinocchio::Model>& getModel() const { return this->model_; }
     void setModel(const std::shared_ptr<const pinocchio::Model>& model);

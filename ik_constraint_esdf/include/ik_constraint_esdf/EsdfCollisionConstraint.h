@@ -18,6 +18,7 @@ namespace ik_constraint_esdf {
       const std::shared_ptr<const pinocchio::Model>& model,
       const std::shared_ptr<const pinocchio::GeometryModel>& geometryModel,
       pinocchio::JointIndex jointId);
+    std::shared_ptr<ik_constraint::IKConstraint> clone() const override;
 
     const std::shared_ptr<const pinocchio::GeometryModel>& getGeometryModel() const {
       return this->geometryModel_;

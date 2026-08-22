@@ -91,7 +91,7 @@ int main()
   const Eigen::Vector3d initialHandPosition =
     (initialData.oMi[rightHandJointId] * handLocalPose).translation();
   const Eigen::Vector3d targetPosition =
-    initialHandPosition + Eigen::Vector3d(0.45, 0.0, 0.08);
+    initialHandPosition + Eigen::Vector3d(0.0, 0.0, -0.3);
 
   char error[1024] = {0};
   std::shared_ptr<mjSpec> specification(
@@ -108,10 +108,10 @@ int main()
 
   mjsGeom* box = mjs_addGeom(worldBody, nullptr);
   box->type = mjGEOM_BOX;
-  setGeometryPose(box, initialHandPosition + Eigen::Vector3d(0.23, 0.0, 0.04));
+  setGeometryPose(box, Eigen::Vector3d(0.4, -0.1, 0.2));
   box->size[0] = 0.065;
-  box->size[1] = 0.16;
-  box->size[2] = 0.20;
+  box->size[1] = 0.065;
+  box->size[2] = 0.40;
   box->rgba[0] = 0.85f;
   box->rgba[1] = 0.25f;
   box->rgba[2] = 0.15f;
@@ -119,9 +119,9 @@ int main()
 
   mjsGeom* cylinder = mjs_addGeom(worldBody, nullptr);
   cylinder->type = mjGEOM_CYLINDER;
-  setGeometryPose(cylinder, initialHandPosition + Eigen::Vector3d(0.16, 0.30, -0.08));
-  cylinder->size[0] = 0.09;
-  cylinder->size[1] = 0.30;
+  setGeometryPose(cylinder, Eigen::Vector3d(0.4, -0.1, 0.65));
+  cylinder->size[0] = 0.2;
+  cylinder->size[1] = 0.05;
   cylinder->rgba[0] = 0.20f;
   cylinder->rgba[1] = 0.45f;
   cylinder->rgba[2] = 0.90f;

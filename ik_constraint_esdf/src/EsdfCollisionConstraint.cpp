@@ -11,6 +11,14 @@
 #include <stdexcept>
 
 namespace ik_constraint_esdf {
+  std::shared_ptr<ik_constraint::IKConstraint> EsdfCollisionConstraint::clone() const {
+    std::shared_ptr<EsdfCollisionConstraint> result =
+      std::make_shared<EsdfCollisionConstraint>(*this);
+    result->data_ = nullptr;
+    result->hasPreviousValidGradient_ = false;
+    return result;
+  }
+
   EsdfCollisionConstraint::EsdfCollisionConstraint(
     const std::shared_ptr<const pinocchio::Model>& model,
     const std::shared_ptr<const pinocchio::GeometryModel>& geometryModel,

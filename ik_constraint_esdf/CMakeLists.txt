@@ -3,7 +3,6 @@ project(ik_constraint_esdf)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Release)
-set(Python3_EXECUTABLE /usr/bin/python3 CACHE FILEPATH "Python 3 interpreter")
 
 find_package(ament_cmake REQUIRED)
 

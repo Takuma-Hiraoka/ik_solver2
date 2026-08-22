@@ -7,6 +7,14 @@
 #include <stdexcept>
 
 namespace ik_constraint{
+  std::shared_ptr<IKConstraint> ANDConstraint::clone() const {
+    std::vector<std::shared_ptr<IKConstraint> > children;
+    for(size_t index = 0; index < this->children_.size(); ++index) {
+      children.push_back(this->children_[index]->clone());
+    }
+    return std::make_shared<ANDConstraint>(children);
+  }
+
   std::vector<std::shared_ptr<const pinocchio::Model> > ANDConstraint::collectModels(
     const std::vector<std::shared_ptr<IKConstraint> >& children) {
     if(children.empty()) throw std::invalid_argument("ANDConstraint requires at least one child");

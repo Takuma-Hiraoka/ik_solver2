@@ -18,6 +18,7 @@ namespace ik_constraint{
     explicit IKConstraint(
       const std::vector<std::shared_ptr<const pinocchio::Model> >& models);
     virtual ~IKConstraint() = default;
+    virtual std::shared_ptr<IKConstraint> clone() const = 0;
 
     const std::vector<std::shared_ptr<const pinocchio::Model> >& getModels() const {
       return this->models_;

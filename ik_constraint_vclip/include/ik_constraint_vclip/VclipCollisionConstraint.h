@@ -22,6 +22,7 @@ namespace ik_constraint_vclip {
       const std::shared_ptr<const pinocchio::Model>& BModel,
       const std::shared_ptr<const pinocchio::GeometryModel>& BGeometryModel,
       pinocchio::JointIndex BJointId);
+    std::shared_ptr<ik_constraint::IKConstraint> clone() const override;
 
     const std::shared_ptr<const pinocchio::GeometryModel>& getAGeometryModel() const {
       return this->AGeometryModel_;

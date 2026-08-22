@@ -11,6 +11,7 @@ namespace ik_constraint{
   public:
     explicit ORConstraint(
       const std::vector<std::shared_ptr<IKConstraint> >& children);
+    std::shared_ptr<IKConstraint> clone() const override;
 
     const std::vector<std::shared_ptr<IKConstraint> >& getChildren() const {
       return this->children_;

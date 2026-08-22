@@ -14,6 +14,9 @@ namespace ik_constraint{
     JointAngleConstraint(
       const std::shared_ptr<const pinocchio::Model>& AModel,
       const std::shared_ptr<const pinocchio::Model>& BModel);
+    std::shared_ptr<IKConstraint> clone() const override {
+      return std::make_shared<JointAngleConstraint>(*this);
+    }
 
     const std::shared_ptr<const pinocchio::Model>& getAModel() const { return this->AModel_; }
     void setAModel(const std::shared_ptr<const pinocchio::Model>& model);
