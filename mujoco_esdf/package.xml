@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>mujoco_esdf</name>
+  <version>0.0.0</version>
+  <description>Create a Voxblox ESDF from MuJoCo geometry specifications.</description>
+  <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>eigen</depend>
+  <depend>mujoco_vendor</depend>
+  <depend>voxblox</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

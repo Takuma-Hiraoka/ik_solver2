@@ -9,6 +9,8 @@ find_package(ament_cmake REQUIRED)
 set(dependencies
   ik_constraint_coal
   ik_constraint_vclip
+  ik_constraint_esdf
+  mujoco_esdf
   mujoco_viewer
   pinocchio
   ik_constraint
@@ -31,6 +33,7 @@ add_executable(com src/com.cpp)
 add_executable(collision src/collision.cpp)
 add_executable(multi_robot src/multi_robot.cpp)
 add_executable(position src/position.cpp)
+add_executable(env_collision src/env_collision.cpp)
 
 foreach(target com multi_robot position)
   ament_target_dependencies(${target}
@@ -50,11 +53,15 @@ target_link_libraries(collision
   pinocchio::pinocchio
   )
 
+ament_target_dependencies(env_collision ${dependencies})
+target_link_libraries(env_collision pinocchio::pinocchio)
+
 install(TARGETS
   collision
   com
   multi_robot
   position
+  env_collision
   DESTINATION lib/${PROJECT_NAME}
 )
 

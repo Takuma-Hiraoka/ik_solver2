@@ -11,6 +11,8 @@
   <depend>mujoco_viewer</depend>
   <depend>ik_constraint_coal</depend>
   <depend>ik_constraint_vclip</depend>
+  <depend>ik_constraint_esdf</depend>
+  <depend>mujoco_esdf</depend>
   <depend>pinocchio</depend>
   <depend>ik_constraint</depend>
   <depend>prioritized_inverse_kinematics_solver</depend>
