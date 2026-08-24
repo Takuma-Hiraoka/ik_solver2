@@ -1,0 +1,33 @@
+repositories:
+  ik_solver2:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/ik_solver2.git
+    version: main
+  mujoco_vendor:
+    type: git
+    url: git@github.com:pal-robotics/mujoco_vendor.git
+    version: master
+  mujoco_viewer:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/mujoco_viewer.git
+    version: master
+  osqp_eigen_vendor:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/osqp_eigen_vendor.git
+    version: main
+  prioritized_qp2:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/prioritized_qp2.git
+    version: main
+  vclip_eigen:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/vclip_eigen.git
+    version: main
+  minkindr:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/minkindr.git
+    version: ament
+  voxblox:
+    type: git
+    url: git@github.com:Takuma-Hiraoka/voxblox.git
+    version: ament
