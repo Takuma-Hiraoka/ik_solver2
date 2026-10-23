@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
+#include <mutex>
 #include <stdexcept>
 
 namespace ik_constraint_vclip {
@@ -16,7 +18,8 @@ namespace ik_constraint_vclip {
       std::make_shared<VclipCollisionConstraint>(*this);
     result->AData_ = nullptr;
     result->BData_ = nullptr;
-    result->invalidateVclipModels();
+    // Shapes are shared and treated as read-only; history and matrices are value copies.
+    // Only model Data belongs to the original solver and must be rebound.
     return result;
   }
 
@@ -33,6 +36,8 @@ namespace ik_constraint_vclip {
     if(!this->AGeometryModel_ || !this->BGeometryModel_) {
       throw std::invalid_argument("VclipCollisionConstraint geometry model is null");
     }
+    this->AVclipGeometryModel_ = getVclipGeometryModel(this->AGeometryModel_);
+    this->BVclipGeometryModel_ = getVclipGeometryModel(this->BGeometryModel_);
   }
 
   void VclipCollisionConstraint::setAGeometryModel(
@@ -40,7 +45,9 @@ namespace ik_constraint_vclip {
     if(!geometryModel) {
       throw std::invalid_argument("VclipCollisionConstraint A geometry model is null");
     }
+    const std::shared_ptr<const VclipGeometryModel> cache = getVclipGeometryModel(geometryModel);
     this->AGeometryModel_ = geometryModel;
+    this->AVclipGeometryModel_ = cache;
     this->invalidateVclipModels();
   }
 
@@ -49,7 +56,9 @@ namespace ik_constraint_vclip {
     if(!geometryModel) {
       throw std::invalid_argument("VclipCollisionConstraint B geometry model is null");
     }
+    const std::shared_ptr<const VclipGeometryModel> cache = getVclipGeometryModel(geometryModel);
     this->BGeometryModel_ = geometryModel;
+    this->BVclipGeometryModel_ = cache;
     this->invalidateVclipModels();
   }
 
@@ -60,8 +69,39 @@ namespace ik_constraint_vclip {
     this->hasPreviousSeparatedResult_ = false;
   }
 
+  std::shared_ptr<const VclipCollisionConstraint::VclipGeometryModel>
+  VclipCollisionConstraint::getVclipGeometryModel(
+    const std::shared_ptr<const pinocchio::GeometryModel>& geometryModel) {
+    // Serialize cache construction only. Distance queries never take this lock.
+    // Weak entries let models be released when the last constraint is destroyed.
+    static std::mutex cacheMutex;
+    static std::map<const pinocchio::GeometryModel*, std::weak_ptr<const VclipGeometryModel> > caches;
+    std::lock_guard<std::mutex> lock(cacheMutex);
+    std::map<const pinocchio::GeometryModel*, std::weak_ptr<const VclipGeometryModel> >::iterator entry = caches.begin();
+    while(entry != caches.end()) {
+      if(entry->second.expired()) entry = caches.erase(entry);
+      else ++entry;
+    }
+    entry = caches.find(geometryModel.get());
+    if(entry != caches.end()) {
+      const std::shared_ptr<const VclipGeometryModel> cache = entry->second.lock();
+      if(cache) return cache;
+    }
+    std::shared_ptr<VclipGeometryModel> cache = std::make_shared<VclipGeometryModel>();
+    cache->geometryModel = geometryModel;
+    cache->models.resize(geometryModel->geometryObjects.size());
+    for(size_t i=0; i<geometryModel->geometryObjects.size(); i++) {
+      const pinocchio::GeometryObject& geometryObject = geometryModel->geometryObjects[i];
+      if(geometryObject.geometry && !geometryObject.disableCollision) {
+        cache->models[i] = vclip_eigen::convertToVClipModel(getGeometryVertices(geometryObject));
+      }
+    }
+    caches[geometryModel.get()] = cache;
+    return cache;
+  }
+
   std::vector<Eigen::Vector3d> VclipCollisionConstraint::getGeometryVertices(
-    const pinocchio::GeometryObject& geometryObject) const {
+    const pinocchio::GeometryObject& geometryObject) {
     if(!geometryObject.geometry) {
       throw std::invalid_argument("VclipCollisionConstraint geometry is null");
     }
@@ -214,8 +254,7 @@ namespace ik_constraint_vclip {
          geometryObject.geometry && !geometryObject.disableCollision) {
         VclipGeometry vclipGeometry;
         vclipGeometry.geometryObject = &geometryObject;
-        vclipGeometry.model = vclip_eigen::convertToVClipModel(
-          this->getGeometryVertices(geometryObject));
+        vclipGeometry.model = this->AVclipGeometryModel_->models[i];
         this->AVclipGeometries_.push_back(vclipGeometry);
       }
     }
@@ -226,8 +265,7 @@ namespace ik_constraint_vclip {
          geometryObject.geometry && !geometryObject.disableCollision) {
         VclipGeometry vclipGeometry;
         vclipGeometry.geometryObject = &geometryObject;
-        vclipGeometry.model = vclip_eigen::convertToVClipModel(
-          this->getGeometryVertices(geometryObject));
+        vclipGeometry.model = this->BVclipGeometryModel_->models[i];
         this->BVclipGeometries_.push_back(vclipGeometry);
       }
     }

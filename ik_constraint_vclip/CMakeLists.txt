@@ -11,6 +11,7 @@ set(dependencies
   Eigen3
   ik_constraint
   pinocchio
+  Threads
   vclip_eigen
 )
 
@@ -36,6 +37,7 @@ target_link_libraries(${PROJECT_NAME}
   coal::coal
   Eigen3::Eigen
   pinocchio::pinocchio
+  Threads::Threads
 )
 
 install(TARGETS ${PROJECT_NAME}

@@ -54,10 +54,20 @@ namespace ik_constraint_vclip {
       std::shared_ptr<Vclip::Polyhedron> model = nullptr;
     };
 
+    // Shapes shared by constraints and their clones; treated as read-only.
+    // Pointer types match the existing vclip_eigen API. The source
+    // GeometryModel must not be modified while this cache is in use.
+    struct VclipGeometryModel {
+      std::shared_ptr<const pinocchio::GeometryModel> geometryModel;
+      std::vector<std::shared_ptr<Vclip::Polyhedron> > models;
+    };
+
+    static std::shared_ptr<const VclipGeometryModel> getVclipGeometryModel(
+      const std::shared_ptr<const pinocchio::GeometryModel>& geometryModel);
     void initializeVclipModels();
     void invalidateVclipModels();
-    std::vector<Eigen::Vector3d> getGeometryVertices(
-      const pinocchio::GeometryObject& geometryObject) const;
+    static std::vector<Eigen::Vector3d> getGeometryVertices(
+      const pinocchio::GeometryObject& geometryObject);
     const pinocchio::Data& getData(
       const std::shared_ptr<const pinocchio::Model>& model) const;
     pinocchio::SE3 getGeometryWorldPlacement(
@@ -66,6 +76,8 @@ namespace ik_constraint_vclip {
 
     std::shared_ptr<const pinocchio::GeometryModel> AGeometryModel_;
     std::shared_ptr<const pinocchio::GeometryModel> BGeometryModel_;
+    std::shared_ptr<const VclipGeometryModel> AVclipGeometryModel_;
+    std::shared_ptr<const VclipGeometryModel> BVclipGeometryModel_;
     const pinocchio::Data* AData_ = nullptr;
     const pinocchio::Data* BData_ = nullptr;
     std::vector<VclipGeometry> AVclipGeometries_;

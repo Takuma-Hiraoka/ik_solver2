@@ -8,10 +8,39 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
 namespace ik_constraint{
+  namespace {
+    // Logarithm of the rotation taking axis to normal on the unit sphere.
+    // Unlike a cross product alone, this also rejects antiparallel axes.
+    void axisError(const Eigen::Vector3d& normal, const Eigen::Vector3d& axis,
+      Eigen::Vector3d& error, Eigen::Matrix3d& angularJacobian) {
+      const Eigen::Vector3d cross = axis.cross(normal);
+      const double sine = cross.norm();
+      const double cosine = std::clamp(axis.dot(normal),-1.0,1.0);
+      if(sine > 1e-8) {
+        const double angle = std::atan2(sine,cosine);
+        error = (angle / sine) * cross;
+        const Eigen::Vector3d gradient =
+          ((cosine * sine - angle) / (sine * sine * sine)) *
+            (normal - cosine * axis) - axis;
+        const Eigen::Matrix3d derivative =
+          (angle / sine) * pinocchio::skew(axis) + cross * gradient.transpose();
+        angularJacobian = -derivative * pinocchio::skew(normal);
+      } else {
+        error.setZero();
+        if(cosine < 0.0) {
+          const Eigen::Index freeAxis = axis.x() > 0.5 ? 0 : (axis.y() > 0.5 ? 1 : 2);
+          error[(freeAxis + 1) % 3] = std::acos(-1.0);
+        }
+        angularJacobian = Eigen::Matrix3d::Identity() - axis * axis.transpose();
+      }
+    }
+  }
+
   PositionConstraint::PositionConstraint(
     const std::shared_ptr<const pinocchio::Model>& model)
     : PositionConstraint(model, model) {
@@ -49,6 +78,16 @@ namespace ik_constraint{
       this->setModels(
         std::vector<std::shared_ptr<const pinocchio::Model> >{this->AModel_, this->BModel_});
     }
+    if(this->evalModel_ && this->evalModel_.get() != this->AModel_.get() &&
+       this->evalModel_.get() != this->BModel_.get()) {
+      this->models_.push_back(this->evalModel_);
+    }
+  }
+
+  void PositionConstraint::setEvalModel(
+    const std::shared_ptr<const pinocchio::Model>& model) {
+    this->evalModel_ = model;
+    this->updateModels();
   }
 
   pinocchio::SE3 PositionConstraint::getPlacement(
@@ -90,10 +129,58 @@ namespace ik_constraint{
     this->BPosition_ =
       this->getPlacement(this->BModel_, BData, this->BJointId_, this->BLocalPose_);
 
-    this->currentError_.head<3>() =
-      this->APosition_.translation() - this->BPosition_.translation();
-    this->currentError_.tail<3>() =
-      pinocchio::log3(this->APosition_.rotation() * this->BPosition_.rotation().transpose());
+    this->evalRotation_ = this->evalLocalR_;
+    if(this->evalJointId_ != 0) {
+      if(!this->evalModel_) throw std::invalid_argument("PositionConstraint evaluation model is null");
+      const pinocchio::Data& evalData = *data[this->getConstraintModelIndex(this->evalModel_)];
+      this->evalRotation_ = this->getPlacement(this->evalModel_,evalData,
+        this->evalJointId_,pinocchio::SE3(this->evalLocalR_,Eigen::Vector3d::Zero())).rotation();
+    }
+    const Eigen::Matrix3d worldToEval = this->evalRotation_.transpose();
+    this->currentError_.head<3>() = worldToEval *
+      (this->APosition_.translation() - this->BPosition_.translation());
+    this->rotationErrorJacobian_ = worldToEval;
+    this->axisAlignment_ = false;
+    const bool evalIsA = this->evalJointId_ == this->AJointId_ &&
+      (this->evalJointId_ == 0 || this->evalModel_.get() == this->AModel_.get()) &&
+      this->evalLocalR_.isApprox(this->ALocalPose_.rotation(),1e-12);
+    const bool evalIsB = this->evalJointId_ == this->BJointId_ &&
+      (this->evalJointId_ == 0 || this->evalModel_.get() == this->BModel_.get()) &&
+      this->evalLocalR_.isApprox(this->BLocalPose_.rotation(),1e-12);
+    const Eigen::Index rotationDimension = (this->weight_.tail<3>().array() > 0.0).count();
+    if(rotationDimension == 2 && (evalIsA || evalIsB)) {
+      Eigen::Vector3d axis = Eigen::Vector3d::Zero();
+      for(Eigen::Index i = 0; i < 3; ++i)
+        if(this->weight_[3+i] <= 0.0) axis[i] = 1.0;
+      // Use B when both frames match. Otherwise account for A's moving frame.
+      const bool useB = evalIsB;
+      const Eigen::Vector3d normal = worldToEval *
+        ((useB ? this->APosition_.rotation() : this->BPosition_.rotation()) * axis);
+      Eigen::Vector3d error;
+      Eigen::Matrix3d angularJacobian;
+      axisError(normal,axis,error,angularJacobian);
+      this->currentError_.tail<3>() = useB ? error : -error;
+      this->rotationErrorJacobian_ = angularJacobian * worldToEval;
+      this->axisAlignment_ = true;
+    } else {
+      Eigen::Matrix3d ARotation = this->APosition_.rotation();
+      Eigen::Matrix3d BRotation = this->BPosition_.rotation();
+      if(rotationDimension == 1 && (evalIsA || evalIsB)) {
+        // With two free rotational axes, remove the swing and measure twist.
+        Eigen::Vector3d axis = Eigen::Vector3d::Zero();
+        for(Eigen::Index i = 0; i < 3; ++i)
+          if(this->weight_[3+i] > 0.0) axis[i] = 1.0;
+        if(evalIsA) {
+          BRotation = Eigen::Quaterniond::FromTwoVectors(
+            BRotation * axis,ARotation * axis).toRotationMatrix() * BRotation;
+        } else {
+          ARotation = Eigen::Quaterniond::FromTwoVectors(
+            ARotation * axis,BRotation * axis).toRotationMatrix() * ARotation;
+        }
+      }
+      this->currentError_.tail<3>() = worldToEval *
+        pinocchio::log3(ARotation * BRotation.transpose());
+    }
 
     Eigen::Index activeDimension = 0;
     for(Eigen::Index i=0; i<6; i++) {
@@ -153,6 +240,26 @@ namespace ik_constraint{
       this->getConstraintVariableOffset(this->AModel_), this->AModel_->nv) += AJacobian;
     fullJacobian.middleCols(
       this->getConstraintVariableOffset(this->BModel_), this->BModel_->nv) -= BJacobian;
+
+    Eigen::Matrix<double,3,Eigen::Dynamic> evalAngularJacobian =
+      Eigen::Matrix<double,3,Eigen::Dynamic>::Zero(3,localDimension);
+    if(this->evalJointId_ != 0) {
+      if(!this->evalModel_) throw std::invalid_argument("PositionConstraint evaluation model is null");
+      pinocchio::Data& evalData = *data[this->getConstraintModelIndex(this->evalModel_)];
+      const Eigen::Matrix<double,6,Eigen::Dynamic> evalJacobian = this->getJointJacobian(
+        this->evalModel_,evalData,this->evalJointId_,pinocchio::SE3::Identity());
+      evalAngularJacobian.middleCols(
+        this->getConstraintVariableOffset(this->evalModel_),this->evalModel_->nv) = evalJacobian.bottomRows<3>();
+    }
+    const Eigen::Matrix3d worldToEval = this->evalRotation_.transpose();
+    fullJacobian.topRows<3>() = (worldToEval * fullJacobian.topRows<3>() +
+      pinocchio::skew(this->currentError_.head<3>()) * worldToEval * evalAngularJacobian).eval();
+    fullJacobian.bottomRows<3>() =
+      (this->rotationErrorJacobian_ * fullJacobian.bottomRows<3>()).eval();
+    if(!this->axisAlignment_) {
+      fullJacobian.bottomRows<3>() += pinocchio::skew(this->currentError_.tail<3>()) *
+        worldToEval * evalAngularJacobian;
+    }
 
     Eigen::Index activeDimension = 0;
     for(Eigen::Index i=0; i<6; i++) {

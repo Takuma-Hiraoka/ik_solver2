@@ -33,6 +33,14 @@ namespace ik_constraint{
     void setBJointId(const pinocchio::JointIndex& jointId) { this->BJointId_ = jointId; }
     const pinocchio::SE3& getBLocalPose() const { return this->BLocalPose_; }
     void setBLocalPose(const pinocchio::SE3& localPose) { this->BLocalPose_ = localPose; }
+    // Errors, weights and maxError are expressed in this evaluation frame.
+    // Joint 0 uses a fixed world rotation; the default is world-aligned.
+    const std::shared_ptr<const pinocchio::Model>& getEvalModel() const { return this->evalModel_; }
+    void setEvalModel(const std::shared_ptr<const pinocchio::Model>& model);
+    const pinocchio::JointIndex& getEvalJointId() const { return this->evalJointId_; }
+    void setEvalJointId(const pinocchio::JointIndex& jointId) { this->evalJointId_ = jointId; }
+    const Eigen::Matrix3d& getEvalLocalR() const { return this->evalLocalR_; }
+    void setEvalLocalR(const Eigen::Matrix3d& rotation) { this->evalLocalR_ = rotation; }
     const Eigen::Matrix<double,6,1>& getMaxError() const { return this->maxError_; }
     void setMaxError(const Eigen::Matrix<double,6,1>& maxError) { this->maxError_ = maxError; }
     const double& getPrecision() const { return this->precision_; }
@@ -55,12 +63,18 @@ namespace ik_constraint{
     pinocchio::SE3 ALocalPose_ = pinocchio::SE3::Identity();
     pinocchio::JointIndex BJointId_ = 0;
     pinocchio::SE3 BLocalPose_ = pinocchio::SE3::Identity();
+    std::shared_ptr<const pinocchio::Model> evalModel_ = nullptr;
+    pinocchio::JointIndex evalJointId_ = 0;
+    Eigen::Matrix3d evalLocalR_ = Eigen::Matrix3d::Identity();
     Eigen::Matrix<double,6,1> maxError_ = Eigen::Matrix<double,6,1>::Constant(0.05);
     double precision_ = 1e-3;
     Eigen::Matrix<double,6,1> weight_ = Eigen::Matrix<double,6,1>::Ones();
     Eigen::Matrix<double,6,1> currentError_ = Eigen::Matrix<double,6,1>::Zero();
     pinocchio::SE3 APosition_ = pinocchio::SE3::Identity();
     pinocchio::SE3 BPosition_ = pinocchio::SE3::Identity();
+    Eigen::Matrix3d evalRotation_ = Eigen::Matrix3d::Identity();
+    Eigen::Matrix3d rotationErrorJacobian_ = Eigen::Matrix3d::Identity();
+    bool axisAlignment_ = false;
 
   private:
     pinocchio::SE3 getPlacement(
