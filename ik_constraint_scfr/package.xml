@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ik_constraint_scfr</name>
+  <version>0.0.0</version>
+  <description>Pinocchio IK constraints for static contact force regions.</description>
+  <maintainer email="t-hiraoka@jsk.imi.i.u-tokyo.ac.jp">Takuma-Hiraoka</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>eigen</depend>
+  <depend>pinocchio</depend>
+  <depend>ik_constraint</depend>
+  <depend>scfr_solver</depend>
+  <depend>clpeigen</depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
