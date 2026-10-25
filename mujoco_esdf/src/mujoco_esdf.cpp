@@ -58,11 +58,16 @@ namespace mujoco_esdf {
     std::shared_ptr<voxblox::EsdfMap> map = std::make_shared<voxblox::EsdfMap>(config);
     voxblox::Layer<voxblox::EsdfVoxel>* layer = map->getEsdfLayerPtr();
 
-    const Eigen::Array3i count = ((maximum - minimum) / voxelSize).array().ceil().cast<int>() + 1;
+    // ESDF values belong to voxel centres, not arbitrary points inside each
+    // voxel. Align the sampling grid even when minimum is not a grid multiple.
+    const double cellSize = layer->voxel_size();
+    const Eigen::Array3i first = (minimum/cellSize).array().floor().cast<int>();
+    const Eigen::Array3i count = (maximum/cellSize).array().ceil().cast<int>()-first;
     for(int x = 0; x < count.x(); ++x) {
       for(int y = 0; y < count.y(); ++y) {
         for(int z = 0; z < count.z(); ++z) {
-          const Eigen::Vector3d point = minimum + voxelSize * Eigen::Vector3d(x, y, z);
+          const Eigen::Vector3d point = cellSize*(first.cast<double>()+
+            Eigen::Array3d(double(x)+0.5,double(y)+0.5,double(z)+0.5)).matrix();
           const voxblox::Point voxelPoint = point.cast<voxblox::FloatingPoint>();
           layer->allocateBlockPtrByCoordinates(voxelPoint);
           voxblox::EsdfVoxel* voxel = layer->getVoxelPtrByCoordinates(voxelPoint);

@@ -69,7 +69,7 @@ namespace ik_constraint_esdf {
     std::shared_ptr<const pinocchio::GeometryModel> geometryModel_;
     std::shared_ptr<voxblox::EsdfMap> field_ = nullptr;
     Eigen::Isometry3d fieldOrigin_ = Eigen::Isometry3d::Identity();
-    double resolution_ = 0.02;
+    double resolution_ = 0.01;
     double minDistance_ = -0.02;
     double maxDistance_ = 0.5;
     const pinocchio::Data* data_ = nullptr;

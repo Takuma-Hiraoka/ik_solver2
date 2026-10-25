@@ -1,7 +1,9 @@
 #include <ik_constraint_esdf/EsdfCollisionConstraint.h>
 
 #include <coal/BVH/BVH_model.h>
+#include <coal/BV/OBBRSS.h>
 #include <coal/shape/geometric_shapes.h>
+#include <coal/shape/geometric_shape_to_BVH_model.h>
 
 #include <algorithm>
 #include <array>
@@ -40,7 +42,7 @@ namespace ik_constraint_esdf {
   }
 
   void EsdfCollisionConstraint::setResolution(const double& resolution) {
-    if(resolution <= 0.0) {
+    if(!std::isfinite(resolution) || resolution <= 0.0) {
       throw std::invalid_argument("EsdfCollisionConstraint resolution must be positive");
     }
     this->resolution_ = resolution;
@@ -60,6 +62,15 @@ namespace ik_constraint_esdf {
     std::vector<Eigen::Vector3d> geometryPoints;
     const coal::BVHModelBase* bvhModel =
       dynamic_cast<const coal::BVHModelBase*>(geometryObject.geometry.get());
+    const coal::Box* box = dynamic_cast<const coal::Box*>(geometryObject.geometry.get());
+    // Conversion and sampling run only when the local surface-point cache is
+    // initialized or invalidated. Keep the shared GeometryModel unchanged.
+    std::unique_ptr<coal::BVHModel<coal::OBBRSS> > boxModel;
+    if(box) {
+      boxModel = std::make_unique<coal::BVHModel<coal::OBBRSS> >();
+      coal::generateBVHModel(*boxModel,*box,coal::Transform3s::Identity());
+      bvhModel = boxModel.get();
+    }
     if(bvhModel && bvhModel->vertices) {
       if(bvhModel->tri_indices && bvhModel->num_tris > 0) {
         for(size_t i=0; i<bvhModel->num_tris; i++) {
@@ -69,17 +80,14 @@ namespace ik_constraint_esdf {
           const Eigen::Vector3d v2 = (*bvhModel->vertices)[triangle[2]];
           const Eigen::Vector3d edge1 = v1 - v0;
           const Eigen::Vector3d edge2 = v2 - v0;
-          const double length1 = edge1.norm();
-          const double length2 = edge2.norm();
-          const size_t divisions1 = std::max(
-            size_t(1), size_t(std::ceil(length1 / this->resolution_)));
-          for(size_t j=0; j<=divisions1; j++) {
-            const double ratio1 = double(j) / double(divisions1);
-            const size_t divisions2 = std::max(
-              size_t(1), size_t(std::ceil(
-                length2 * (1.0 - ratio1) / this->resolution_)));
-            for(size_t k=0; k<=divisions2; k++) {
-              const double ratio2 = (1.0 - ratio1) * double(k) / double(divisions2);
+          const double longestEdge = std::max(edge1.norm(),std::max(edge2.norm(),(v2-v1).norm()));
+          const size_t divisions = std::max(size_t(1),size_t(std::ceil(longestEdge/this->resolution_)));
+          // A uniform barycentric grid bounds all three edge directions by
+          // resolution. Small triangles contribute only their three vertices.
+          for(size_t j=0; j<=divisions; j++) {
+            const double ratio1 = double(j)/double(divisions);
+            for(size_t k=0; k<=divisions-j; k++) {
+              const double ratio2 = double(k)/double(divisions);
               geometryPoints.push_back(v0 + ratio1 * edge1 + ratio2 * edge2);
             }
           }
@@ -96,20 +104,6 @@ namespace ik_constraint_esdf {
     if(geometryPoints.empty() && convex && convex->points) {
       for(size_t i=0; i<convex->num_points; i++) {
         geometryPoints.push_back((*convex->points)[i]);
-      }
-    }
-
-    const coal::Box* box =
-      dynamic_cast<const coal::Box*>(geometryObject.geometry.get());
-    if(geometryPoints.empty() && box) {
-      for(int xSign=-1; xSign<=1; xSign+=2) {
-        for(int ySign=-1; ySign<=1; ySign+=2) {
-          for(int zSign=-1; zSign<=1; zSign+=2) {
-            geometryPoints.push_back(Eigen::Vector3d(
-              xSign * box->halfSide.x(), ySign * box->halfSide.y(),
-              zSign * box->halfSide.z()));
-          }
-        }
       }
     }
 
