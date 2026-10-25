@@ -10,6 +10,9 @@ set(dependencies
   ik_constraint_coal
   ik_constraint_vclip
   ik_constraint_esdf
+  ik_constraint_sp
+  pinocchio_primitive_models
+  pinocchio_mujoco_converter
   mujoco_esdf
   mujoco_viewer
   pinocchio
@@ -34,6 +37,10 @@ add_executable(collision src/collision.cpp)
 add_executable(multi_robot src/multi_robot.cpp)
 add_executable(position src/position.cpp)
 add_executable(env_collision src/env_collision.cpp)
+add_executable(sp src/sp.cpp)
+ament_target_dependencies(sp ${common_dependencies} ik_constraint_sp
+  pinocchio_primitive_models pinocchio_mujoco_converter)
+target_link_libraries(sp pinocchio::pinocchio)
 
 foreach(target com multi_robot position)
   ament_target_dependencies(${target}
@@ -62,6 +69,7 @@ install(TARGETS
   multi_robot
   position
   env_collision
+  sp
   DESTINATION lib/${PROJECT_NAME}
 )
 

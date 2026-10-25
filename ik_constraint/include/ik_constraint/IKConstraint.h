@@ -78,6 +78,8 @@ namespace ik_constraint{
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   protected:
+    // For constraints configured by model-registration setters before use.
+    IKConstraint() = default;
     void setModels(const std::vector<std::shared_ptr<const pinocchio::Model> >& models);
 
     std::vector<std::shared_ptr<const pinocchio::Model> > models_;
